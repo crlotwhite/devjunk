@@ -1,0 +1,18 @@
+[package]
+name = "devjunk-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Core library for scanning and cleaning development junk directories"
+
+[dependencies]
+anyhow.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+rayon.workspace = true
+walkdir.workspace = true
+
+[dev-dependencies]
+tempfile = "3.14"

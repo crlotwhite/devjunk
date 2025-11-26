@@ -1,0 +1,19 @@
+[workspace]
+resolver = "2"
+members = ["devjunk-core", "devjunk-cli", "devjunk-gui/src-tauri"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["DevJunk Team"]
+license = "MIT"
+repository = "https://github.com/example/devjunk"
+
+[workspace.dependencies]
+# Shared dependencies across workspace
+anyhow = "1.0"
+thiserror = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+rayon = "1.10"
+walkdir = "2.5"

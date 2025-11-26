@@ -1,0 +1,17 @@
+[package]
+name = "devjunk-cli"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "CLI tool for scanning and cleaning development junk directories"
+
+[[bin]]
+name = "devjunk"
+path = "src/main.rs"
+
+[dependencies]
+devjunk-core = { path = "../devjunk-core" }
+anyhow.workspace = true
+serde_json.workspace = true
+clap = { version = "4.5", features = ["derive"] }

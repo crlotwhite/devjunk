@@ -1,0 +1,23 @@
+[package]
+name = "devjunk-gui"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Desktop GUI for scanning and cleaning development junk directories"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+devjunk-core = { path = "../../devjunk-core" }
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+tauri-plugin-dialog = "2"
+serde.workspace = true
+serde_json.workspace = true
+tokio = "1.48.0"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
