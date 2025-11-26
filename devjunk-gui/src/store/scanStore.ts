@@ -11,11 +11,13 @@
 
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
-import type { AppStore, ScanResult, CleanResult } from "../types";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import type { AppStore, ScanResult, CleanResult, ScanProgress } from "../types";
 
 const initialState = {
   paths: [] as string[],
   scanResult: null as ScanResult | null,
+  scanProgress: null as ScanProgress | null,
   selectedPaths: new Set<string>(),
   isScanning: false,
   isCleaning: false,
@@ -59,16 +61,31 @@ export const useScanStore = create<AppStore>((set, get) => ({
       return;
     }
 
-    set({ isScanning: true, error: null, scanResult: null, selectedPaths: new Set() });
+    set({ isScanning: true, error: null, scanResult: null, scanProgress: null, selectedPaths: new Set() });
+
+    // Set up progress listener
+    let unlisten: UnlistenFn | null = null;
+    try {
+      unlisten = await listen<ScanProgress>("scan-progress", (event) => {
+        set({ scanProgress: event.payload });
+      });
+    } catch {
+      // Progress listening failed, continue without it
+    }
 
     try {
       const result = await invoke<ScanResult>("scan_paths", { paths });
-      set({ scanResult: result, isScanning: false });
+      set({ scanResult: result, isScanning: false, scanProgress: null });
     } catch (e) {
       set({
         error: typeof e === "string" ? e : "Failed to scan paths",
         isScanning: false,
+        scanProgress: null,
       });
+    } finally {
+      if (unlisten) {
+        unlisten();
+      }
     }
   },
 
@@ -107,17 +124,42 @@ export const useScanStore = create<AppStore>((set, get) => ({
     try {
       const paths = Array.from(selectedPaths);
       const result = await invoke<CleanResult>("clean_paths", { paths, dryRun });
+      
+      // Set clean result first so user can see it
       set({
         cleanResult: result,
         isCleaning: false,
-        // If not a dry run and successful, trigger a re-scan
-        ...((!dryRun && result.isSuccess) ? { scanResult: null, selectedPaths: new Set() } : {}),
+        // Clear selection if actual deletion was successful
+        ...((!dryRun && result.isSuccess) ? { selectedPaths: new Set() } : {}),
       });
 
-      // Re-scan if actual deletion was successful
+      // Re-scan if actual deletion was successful, but preserve cleanResult
       if (!dryRun && result.isSuccess) {
-        const { startScan } = get();
-        await startScan();
+        const { paths: scanPaths } = get();
+        if (scanPaths.length > 0) {
+          // Inline re-scan logic to preserve cleanResult
+          set({ isScanning: true, scanProgress: null });
+          
+          let unlisten: UnlistenFn | null = null;
+          try {
+            unlisten = await listen<ScanProgress>("scan-progress", (event) => {
+              set({ scanProgress: event.payload });
+            });
+          } catch {
+            // Progress listening failed, continue without it
+          }
+
+          try {
+            const scanResult = await invoke<ScanResult>("scan_paths", { paths: scanPaths });
+            set({ scanResult, isScanning: false, scanProgress: null });
+          } catch {
+            set({ isScanning: false, scanProgress: null });
+          } finally {
+            if (unlisten) {
+              unlisten();
+            }
+          }
+        }
       }
     } catch (e) {
       set({
@@ -133,6 +175,10 @@ export const useScanStore = create<AppStore>((set, get) => ({
 
   clearCleanResult: () => {
     set({ cleanResult: null });
+  },
+
+  setScanProgress: (progress: ScanProgress | null) => {
+    set({ scanProgress: progress });
   },
 
   reset: () => {

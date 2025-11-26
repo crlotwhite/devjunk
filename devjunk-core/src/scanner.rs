@@ -3,9 +3,24 @@
 use crate::error::{DevJunkError, Result};
 use crate::types::{JunkKind, ScanConfig, ScanItem, ScanResult};
 use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 use walkdir::{DirEntry, WalkDir};
+
+/// Progress information during a scan operation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScanProgress {
+    /// Current path being scanned
+    pub current_path: String,
+    /// Number of junk items found so far
+    pub items_found: usize,
+    /// Number of directories scanned so far
+    pub directories_scanned: usize,
+}
 
 /// Scan directories according to the given configuration
 ///
@@ -25,6 +40,21 @@ use walkdir::{DirEntry, WalkDir};
 /// println!("Found {} items", result.item_count());
 /// ```
 pub fn scan(config: &ScanConfig) -> Result<ScanResult> {
+    scan_with_progress(config, |_| {})
+}
+
+/// Scan directories with progress callback
+///
+/// # Arguments
+/// * `config` - Configuration specifying roots, patterns, and options
+/// * `on_progress` - Callback function called for each directory scanned
+///
+/// # Returns
+/// * `Result<ScanResult>` - The scan result containing all found junk items
+pub fn scan_with_progress<F>(config: &ScanConfig, on_progress: F) -> Result<ScanResult>
+where
+    F: Fn(ScanProgress) + Send + Sync,
+{
     // Validate roots exist
     for root in &config.roots {
         if !root.exists() {
@@ -35,11 +65,24 @@ pub fn scan(config: &ScanConfig) -> Result<ScanResult> {
         }
     }
 
+    // Shared counters for progress tracking
+    let dirs_scanned = Arc::new(AtomicUsize::new(0));
+    let items_found = Arc::new(AtomicUsize::new(0));
+    let on_progress = Arc::new(on_progress);
+
     // Collect all junk items from all roots in parallel
     let items: Vec<ScanItem> = config
         .roots
         .par_iter()
-        .flat_map(|root| scan_root(root, config))
+        .flat_map(|root| {
+            scan_root_with_progress(
+                root,
+                config,
+                Arc::clone(&dirs_scanned),
+                Arc::clone(&items_found),
+                Arc::clone(&on_progress),
+            )
+        })
         .collect();
 
     let mut result = ScanResult { items };
@@ -48,8 +91,17 @@ pub fn scan(config: &ScanConfig) -> Result<ScanResult> {
     Ok(result)
 }
 
-/// Scan a single root directory
-fn scan_root(root: &Path, config: &ScanConfig) -> Vec<ScanItem> {
+/// Scan a single root directory with progress reporting
+fn scan_root_with_progress<F>(
+    root: &Path,
+    config: &ScanConfig,
+    dirs_scanned: Arc<AtomicUsize>,
+    items_found: Arc<AtomicUsize>,
+    on_progress: Arc<F>,
+) -> Vec<ScanItem>
+where
+    F: Fn(ScanProgress) + Send + Sync,
+{
     let mut walker = WalkDir::new(root).follow_links(false);
 
     if let Some(depth) = config.max_depth {
@@ -101,6 +153,17 @@ fn scan_root(root: &Path, config: &ScanConfig) -> Vec<ScanItem> {
             continue;
         }
 
+        // Update progress for each directory
+        let current_dirs = dirs_scanned.fetch_add(1, Ordering::Relaxed) + 1;
+        let current_items = items_found.load(Ordering::Relaxed);
+
+        // Report progress
+        on_progress(ScanProgress {
+            current_path: entry.path().display().to_string(),
+            items_found: current_items,
+            directories_scanned: current_dirs,
+        });
+
         let name = entry.file_name().to_string_lossy();
 
         // Check if this directory matches any junk pattern
@@ -114,7 +177,15 @@ fn scan_root(root: &Path, config: &ScanConfig) -> Vec<ScanItem> {
             // Calculate size and file count
             let (size_bytes, file_count) = calculate_dir_stats(&path);
 
-            items.push(ScanItem::new(path, kind, size_bytes, file_count));
+            items.push(ScanItem::new(path.clone(), kind, size_bytes, file_count));
+
+            // Update items found counter and report progress
+            let new_items = items_found.fetch_add(1, Ordering::Relaxed) + 1;
+            on_progress(ScanProgress {
+                current_path: path.display().to_string(),
+                items_found: new_items,
+                directories_scanned: current_dirs,
+            });
         }
     }
 
@@ -177,29 +248,29 @@ fn calculate_dir_stats(path: &Path) -> (u64, u64) {
     (total_size, file_count)
 }
 
-/// Format bytes into human-readable string
-pub fn format_size(bytes: u64) -> String {
-    const KB: u64 = 1024;
-    const MB: u64 = KB * 1024;
-    const GB: u64 = MB * 1024;
-
-    if bytes >= GB {
-        format!("{:.2} GB", bytes as f64 / GB as f64)
-    } else if bytes >= MB {
-        format!("{:.2} MB", bytes as f64 / MB as f64)
-    } else if bytes >= KB {
-        format!("{:.2} KB", bytes as f64 / KB as f64)
-    } else {
-        format!("{} B", bytes)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::fs::{self, File};
     use std::io::Write;
     use tempfile::TempDir;
+
+    /// Format bytes into human-readable string
+    fn format_size(bytes: u64) -> String {
+        const KB: u64 = 1024;
+        const MB: u64 = KB * 1024;
+        const GB: u64 = MB * 1024;
+
+        if bytes >= GB {
+            format!("{:.2} GB", bytes as f64 / GB as f64)
+        } else if bytes >= MB {
+            format!("{:.2} MB", bytes as f64 / MB as f64)
+        } else if bytes >= KB {
+            format!("{:.2} KB", bytes as f64 / KB as f64)
+        } else {
+            format!("{} B", bytes)
+        }
+    }
 
     #[test]
     fn test_format_size() {

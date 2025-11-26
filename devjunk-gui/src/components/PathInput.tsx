@@ -1,4 +1,6 @@
 import { useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
+import { open } from "@tauri-apps/plugin-dialog";
 import { useScanStore } from "../store/scanStore";
 
 /**
@@ -6,10 +8,12 @@ import { useScanStore } from "../store/scanStore";
  *
  * Features:
  * - Text input for path entry
+ * - Native folder picker dialog
  * - List of added paths with remove buttons
  * - Scan button to start scanning
  */
 export function PathInput() {
+  const { t } = useTranslation();
   const [inputValue, setInputValue] = useState("");
   const { paths, addPath, removePath, clearPaths, startScan, isScanning } = useScanStore();
 
@@ -22,6 +26,23 @@ export function PathInput() {
     }
   };
 
+  const handleBrowse = async () => {
+    try {
+      const selected = await open({
+        directory: true,
+        multiple: true,
+        title: t("pathInput.browse"),
+      });
+
+      if (selected) {
+        const selectedPaths = Array.isArray(selected) ? selected : [selected];
+        selectedPaths.forEach((p) => addPath(p));
+      }
+    } catch {
+      // User cancelled or error occurred
+    }
+  };
+
   return (
     <div className="path-input">
       <form onSubmit={handleSubmit} className="path-form">
@@ -29,25 +50,33 @@ export function PathInput() {
           type="text"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          placeholder="Enter directory path to scan..."
+          placeholder={t("pathInput.placeholder")}
           disabled={isScanning}
           className="path-text-input"
         />
         <button type="submit" disabled={isScanning || !inputValue.trim()}>
-          Add Path
+          {t("pathInput.addPath")}
+        </button>
+        <button
+          type="button"
+          onClick={handleBrowse}
+          disabled={isScanning}
+          className="browse-btn"
+        >
+          📁 {t("pathInput.browse")}
         </button>
       </form>
 
       {paths.length > 0 && (
         <div className="path-list">
           <div className="path-list-header">
-            <span>Paths to scan ({paths.length}):</span>
+            <span>{t("pathInput.pathsToScan")} ({paths.length}):</span>
             <button
               onClick={clearPaths}
               disabled={isScanning}
               className="clear-btn"
             >
-              Clear All
+              {t("pathInput.clearAll")}
             </button>
           </div>
           <ul>
@@ -75,7 +104,7 @@ export function PathInput() {
         disabled={isScanning || paths.length === 0}
         className="scan-btn"
       >
-        {isScanning ? "Scanning..." : "Scan"}
+        {isScanning ? t("pathInput.scanning") : t("pathInput.scan")}
       </button>
     </div>
   );

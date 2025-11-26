@@ -1,13 +1,15 @@
 //! Tauri commands for the DevJunk GUI
 
 use crate::dto::{CleanResultDto, JunkKindDto, ScanResultDto};
-use devjunk_core::{build_clean_plan, execute_clean, scan, JunkKind, ScanConfig};
+use devjunk_core::{build_clean_plan, execute_clean, scan, scan_with_progress, JunkKind, ScanConfig, ScanProgress};
 use std::path::PathBuf;
-use tauri::command;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
+use tauri::{command, AppHandle, Emitter};
 
 /// Scan the given paths for development junk directories
 #[command]
-pub async fn scan_paths(paths: Vec<String>) -> Result<ScanResultDto, String> {
+pub async fn scan_paths(app: AppHandle, paths: Vec<String>) -> Result<ScanResultDto, String> {
     // Convert string paths to PathBuf
     let roots: Vec<PathBuf> = paths.iter().map(PathBuf::from).collect();
 
@@ -24,11 +26,27 @@ pub async fn scan_paths(paths: Vec<String>) -> Result<ScanResultDto, String> {
     // Build config and scan
     let config = ScanConfig::new(roots);
 
+    // Throttle progress events to avoid flooding (emit at most every 50ms)
+    let last_emit = Arc::new(AtomicU64::new(0));
+
     // Run scan in blocking task to not block the async runtime
-    let result = tokio::task::spawn_blocking(move || scan(&config))
-        .await
-        .map_err(|e| format!("Task join error: {}", e))?
-        .map_err(|e| format!("Scan error: {}", e))?;
+    let result = tokio::task::spawn_blocking(move || {
+        scan_with_progress(&config, |progress: ScanProgress| {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis() as u64;
+
+            let last = last_emit.load(Ordering::Relaxed);
+            if now - last >= 50 {
+                last_emit.store(now, Ordering::Relaxed);
+                let _ = app.emit("scan-progress", &progress);
+            }
+        })
+    })
+    .await
+    .map_err(|e| format!("Task join error: {}", e))?
+    .map_err(|e| format!("Scan error: {}", e))?;
 
     Ok(ScanResultDto::from(&result))
 }

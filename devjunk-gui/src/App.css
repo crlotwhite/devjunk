@@ -15,10 +15,32 @@
   border-bottom: 1px solid #ddd;
 }
 
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .app-header h1 {
   font-size: 1.5rem;
   font-weight: 600;
   color: #333;
+  margin: 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.language-select {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -26,6 +48,11 @@
     border-bottom-color: #444;
   }
   .app-header h1 {
+    color: #f0f0f0;
+  }
+  .language-select {
+    background: #2a2a2a;
+    border-color: #555;
     color: #f0f0f0;
   }
 }
@@ -54,6 +81,16 @@
   outline: none;
   border-color: #0066cc;
   box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
+}
+
+.browse-btn {
+  background: #28a745;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.browse-btn:hover:not(:disabled) {
+  background: #218838;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -315,6 +352,69 @@ button:disabled {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* Scan Progress Bar */
+.scan-progress-bar {
+  padding: 0.75rem 1rem;
+  background: linear-gradient(90deg, #e3f2fd 0%, #bbdefb 100%);
+  border: 1px solid #90caf9;
+  border-radius: 4px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+.scan-progress-bar .progress-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.scan-progress-bar .progress-label {
+  font-weight: 600;
+  color: #1565c0;
+  white-space: nowrap;
+}
+
+.scan-progress-bar .progress-path {
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: #1976d2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scan-progress-bar .progress-stats {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: #1565c0;
+}
+
+.scan-progress-bar .progress-stats .separator {
+  opacity: 0.5;
+}
+
+@media (prefers-color-scheme: dark) {
+  .scan-progress-bar {
+    background: linear-gradient(90deg, #1a3a5c 0%, #264a6e 100%);
+    border-color: #3a6a9e;
+  }
+  .scan-progress-bar .progress-label {
+    color: #90caf9;
+  }
+  .scan-progress-bar .progress-path {
+    color: #bbdefb;
+  }
+  .scan-progress-bar .progress-stats {
+    color: #90caf9;
   }
 }
 

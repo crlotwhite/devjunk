@@ -33,6 +33,16 @@ export interface ScanResult {
   itemCount: number;
 }
 
+/** Progress information during a scan operation */
+export interface ScanProgress {
+  /** Current path being scanned */
+  currentPath: string;
+  /** Number of junk items found so far */
+  itemsFound: number;
+  /** Number of directories scanned so far */
+  directoriesScanned: number;
+}
+
 /** A failed clean operation */
 export interface CleanFailure {
   path: string;
@@ -72,6 +82,8 @@ export interface AppState {
   paths: string[];
   /** Current scan result */
   scanResult: ScanResult | null;
+  /** Current scan progress */
+  scanProgress: ScanProgress | null;
   /** Selected paths for deletion */
   selectedPaths: Set<string>;
   /** Whether a scan is in progress */
@@ -106,6 +118,8 @@ export interface AppActions {
   clearError: () => void;
   /** Clear clean result */
   clearCleanResult: () => void;
+  /** Set scan progress */
+  setScanProgress: (progress: ScanProgress | null) => void;
   /** Reset state */
   reset: () => void;
 }

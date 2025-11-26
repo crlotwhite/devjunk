@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useScanStore } from "../store/scanStore";
 
 /**
@@ -10,6 +11,7 @@ import { useScanStore } from "../store/scanStore";
  * - Human-readable sizes
  */
 export function ScanTable() {
+  const { t } = useTranslation();
   const {
     scanResult,
     selectedPaths,
@@ -23,7 +25,7 @@ export function ScanTable() {
     return (
       <div className="scan-table-loading">
         <div className="spinner"></div>
-        <p>Scanning directories...</p>
+        <p>{t("scanTable.loading")}</p>
       </div>
     );
   }
@@ -31,7 +33,7 @@ export function ScanTable() {
   if (!scanResult) {
     return (
       <div className="scan-table-empty">
-        <p>No scan results yet. Add paths and click "Scan" to start.</p>
+        <p>{t("scanTable.empty")}</p>
       </div>
     );
   }
@@ -39,7 +41,7 @@ export function ScanTable() {
   if (scanResult.items.length === 0) {
     return (
       <div className="scan-table-empty">
-        <p>✨ No junk directories found!</p>
+        <p>{t("scanTable.noJunk")}</p>
       </div>
     );
   }
@@ -64,13 +66,13 @@ export function ScanTable() {
                   if (el) el.indeterminate = someSelected && !allSelected;
                 }}
                 onChange={() => (allSelected ? deselectAll() : selectAll())}
-                aria-label="Select all"
+                aria-label={t("scanTable.selectAll")}
               />
             </th>
-            <th className="path-col">Path</th>
-            <th className="kind-col">Type</th>
-            <th className="size-col">Size</th>
-            <th className="count-col">Files</th>
+            <th className="path-col">{t("scanTable.columns.path")}</th>
+            <th className="kind-col">{t("scanTable.columns.type")}</th>
+            <th className="size-col">{t("scanTable.columns.size")}</th>
+            <th className="count-col">{t("scanTable.columns.files")}</th>
           </tr>
         </thead>
         <tbody>

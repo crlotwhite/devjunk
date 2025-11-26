@@ -12,7 +12,7 @@ mod types;
 
 pub use cleaner::{build_clean_plan, execute_clean};
 pub use error::{DevJunkError, Result};
-pub use scanner::scan;
+pub use scanner::{scan, scan_with_progress, ScanProgress};
 pub use types::{CleanPlan, CleanResult, JunkKind, ScanConfig, ScanItem, ScanResult};
 
 #[cfg(test)]

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useScanStore } from "../store/scanStore";
 
 /**
@@ -10,6 +11,7 @@ import { useScanStore } from "../store/scanStore";
  * - Shows clean results
  */
 export function ActionBar() {
+  const { t } = useTranslation();
   const {
     scanResult,
     selectedPaths,
@@ -19,14 +21,15 @@ export function ActionBar() {
     clearCleanResult,
   } = useScanStore();
 
-  if (!scanResult || scanResult.items.length === 0) {
+  // Show cleanResult even if scanResult is empty/null
+  if ((!scanResult || scanResult.items.length === 0) && !cleanResult) {
     return null;
   }
 
-  // Calculate selected stats
-  const selectedItems = scanResult.items.filter((item) =>
+  // Calculate selected stats (only if scanResult exists)
+  const selectedItems = scanResult?.items.filter((item) =>
     selectedPaths.has(item.path)
-  );
+  ) ?? [];
   const selectedSize = selectedItems.reduce(
     (sum, item) => sum + item.sizeBytes,
     0
@@ -38,45 +41,49 @@ export function ActionBar() {
 
   return (
     <div className="action-bar">
-      <div className="action-summary">
-        <div className="summary-item">
-          <span className="summary-label">Total Found:</span>
-          <span className="summary-value">
-            {scanResult.itemCount} directories ({scanResult.totalSizeDisplay})
-          </span>
-        </div>
-        <div className="summary-item">
-          <span className="summary-label">Selected:</span>
-          <span className="summary-value">
-            {selectedPaths.size} directories ({formatSize(selectedSize)})
-          </span>
-        </div>
-        {selectedPaths.size > 0 && (
-          <div className="summary-item">
-            <span className="summary-label">Files to delete:</span>
-            <span className="summary-value">
-              {selectedFileCount.toLocaleString()} files
-            </span>
+      {scanResult && scanResult.items.length > 0 && (
+        <>
+          <div className="action-summary">
+            <div className="summary-item">
+              <span className="summary-label">{t("actionBar.totalFound")}:</span>
+              <span className="summary-value">
+                {scanResult.itemCount} {t("actionBar.directories")} ({scanResult.totalSizeDisplay})
+              </span>
+            </div>
+            <div className="summary-item">
+              <span className="summary-label">{t("actionBar.selected")}:</span>
+              <span className="summary-value">
+                {selectedPaths.size} {t("actionBar.directories")} ({formatSize(selectedSize)})
+              </span>
+            </div>
+            {selectedPaths.size > 0 && (
+              <div className="summary-item">
+                <span className="summary-label">{t("actionBar.filesToDelete")}:</span>
+                <span className="summary-value">
+                  {selectedFileCount.toLocaleString()} {t("actionBar.files")}
+                </span>
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      <div className="action-buttons">
-        <button
-          onClick={() => cleanSelected(true)}
-          disabled={isCleaning || selectedPaths.size === 0}
-          className="btn-secondary"
-        >
-          {isCleaning ? "Processing..." : "🔍 Dry Run"}
-        </button>
-        <button
-          onClick={() => cleanSelected(false)}
-          disabled={isCleaning || selectedPaths.size === 0}
-          className="btn-danger"
-        >
-          {isCleaning ? "Deleting..." : "🗑️ Delete Selected"}
-        </button>
-      </div>
+          <div className="action-buttons">
+            <button
+              onClick={() => cleanSelected(true)}
+              disabled={isCleaning || selectedPaths.size === 0}
+              className="btn-secondary"
+            >
+              {isCleaning ? t("actionBar.processing") : t("actionBar.dryRun")}
+            </button>
+            <button
+              onClick={() => cleanSelected(false)}
+              disabled={isCleaning || selectedPaths.size === 0}
+              className="btn-danger"
+            >
+              {isCleaning ? t("actionBar.deleting") : t("actionBar.deleteSelected")}
+            </button>
+          </div>
+        </>
+      )}
 
       {cleanResult && (
         <div
@@ -85,24 +92,24 @@ export function ActionBar() {
           <button
             onClick={clearCleanResult}
             className="close-btn"
-            aria-label="Dismiss"
+            aria-label={t("actionBar.dismiss")}
           >
             ×
           </button>
           <div className="clean-result-header">
-            {cleanResult.wasDryRun ? "🔍 Dry Run Results" : "✅ Clean Results"}
+            {cleanResult.wasDryRun ? t("actionBar.dryRunResults") : t("actionBar.cleanResults")}
           </div>
           <div className="clean-result-body">
             <p>
-              {cleanResult.wasDryRun ? "Would delete" : "Deleted"}:{" "}
-              <strong>{cleanResult.deletedCount}</strong> directories (
+              {cleanResult.wasDryRun ? t("actionBar.wouldDelete") : t("actionBar.deleted")}:{" "}
+              <strong>{cleanResult.deletedCount}</strong> {t("actionBar.directories")} (
               {cleanResult.bytesFreedDisplay})
             </p>
             {cleanResult.failedCount > 0 && (
               <div className="clean-failures">
                 <p>
-                  ❌ Failed: <strong>{cleanResult.failedCount}</strong>{" "}
-                  directories
+                  ❌ {t("actionBar.failed")}: <strong>{cleanResult.failedCount}</strong>{" "}
+                  {t("actionBar.directories")}
                 </p>
                 <ul>
                   {cleanResult.failed.map((f) => (

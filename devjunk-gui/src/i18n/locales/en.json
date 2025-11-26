@@ -1,0 +1,60 @@
+{
+  "app": {
+    "title": "DevJunk",
+    "subtitle": "Development Directory Cleaner"
+  },
+  "language": {
+    "select": "Language",
+    "en": "English",
+    "ko": "한국어"
+  },
+  "pathInput": {
+    "placeholder": "Enter directory path to scan...",
+    "addPath": "Add Path",
+    "browse": "Browse",
+    "pathsToScan": "Paths to scan",
+    "clearAll": "Clear All",
+    "scanning": "Scanning...",
+    "scan": "Scan"
+  },
+  "scanTable": {
+    "loading": "Scanning directories...",
+    "empty": "No scan results yet. Add paths and click \"Scan\" to start.",
+    "noJunk": "✨ No junk directories found!",
+    "selectAll": "Select all",
+    "columns": {
+      "path": "Path",
+      "type": "Type",
+      "size": "Size",
+      "files": "Files"
+    }
+  },
+  "scanProgress": {
+    "scanning": "Scanning",
+    "directoriesScanned": "directories scanned",
+    "itemsFound": "items found"
+  },
+  "actionBar": {
+    "totalFound": "Total Found",
+    "directories": "directories",
+    "selected": "Selected",
+    "filesToDelete": "Files to delete",
+    "files": "files",
+    "processing": "Processing...",
+    "dryRun": "🔍 Dry Run",
+    "deleting": "Deleting...",
+    "deleteSelected": "🗑️ Delete Selected",
+    "dryRunResults": "🔍 Dry Run Results",
+    "cleanResults": "✅ Clean Results",
+    "wouldDelete": "Would delete",
+    "deleted": "Deleted",
+    "failed": "Failed",
+    "dismiss": "Dismiss"
+  },
+  "errors": {
+    "noPathsToScan": "No paths to scan. Please add at least one path.",
+    "noItemsSelected": "No items selected for cleaning.",
+    "failedToScan": "Failed to scan paths",
+    "failedToClean": "Failed to clean paths"
+  }
+}
