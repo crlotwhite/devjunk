@@ -1,5 +1,6 @@
 //! Domain types for devjunk-core
 
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -110,28 +111,32 @@ impl JunkKind {
         ]
     }
 
-    /// Returns the directory name patterns for this junk kind
+    /// Returns the directory name patterns for this junk kind as anchored regex strings
     pub fn patterns(&self) -> &[&str] {
         match self {
-            Self::PythonVenv => &[".venv", "venv"],
-            Self::PythonTox => &[".tox"],
-            Self::PythonCache => &["__pycache__"],
-            Self::MypyCache => &[".mypy_cache"],
-            Self::PytestCache => &[".pytest_cache"],
-            Self::NodeModules => &["node_modules"],
-            Self::RustTarget => &["target"],
-            Self::BuildDir => &["build"],
-            Self::DistDir => &["dist"],
-            Self::OutDir => &["out"],
-            Self::GoVendor => &["vendor"],
-            Self::NextDir => &[".next"],
-            Self::NuxtDir => &[".nuxt"],
+            Self::PythonVenv => &[r"^\.venv$", r"^venv$"],
+            Self::PythonTox => &[r"^\.tox$"],
+            Self::PythonCache => &[r"^__pycache__$"],
+            Self::MypyCache => &[r"^\.mypy_cache$"],
+            Self::PytestCache => &[r"^\.pytest_cache$"],
+            Self::NodeModules => &[r"^node_modules$"],
+            Self::RustTarget => &[r"^target$"],
+            Self::BuildDir => &[r"^[Bb]uild(-.*)?$"],
+            Self::DistDir => &[r"^dist$"],
+            Self::OutDir => &[r"^out$"],
+            Self::GoVendor => &[r"^vendor$"],
+            Self::NextDir => &[r"^\.next$"],
+            Self::NuxtDir => &[r"^\.nuxt$"],
         }
     }
 
     /// Check if a directory name matches this junk kind
     pub fn matches_name(&self, name: &str) -> bool {
-        self.patterns().iter().any(|p| *p == name)
+        self.patterns().iter().any(|p| {
+            Regex::new(p)
+                .map(|re| re.is_match(name))
+                .unwrap_or(false)
+        })
     }
 
     /// Try to identify the junk kind from a directory name
